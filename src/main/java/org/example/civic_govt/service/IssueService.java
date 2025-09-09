@@ -1,7 +1,10 @@
 package org.example.civic_govt.service;
 
-import org.example.civic_govt.model.*;
-import org.example.civic_govt.repository.*;
+import org.example.civic_govt.model.Issue;
+import org.example.civic_govt.model.User;
+import org.example.civic_govt.model.Department;
+import org.example.civic_govt.model.Community;
+import org.example.civic_govt.repository.IssueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -10,51 +13,68 @@ import java.util.Optional;
 
 @Service
 public class IssueService {
+
     @Autowired
     private IssueRepository issueRepository;
-    @Autowired
-    private UserRepository userRepository;
 
-    public Issue reportIssue(String title, String description, String category, Double lat, Double lng, String priority, String mediaUrl, Long reporterId) {
-        User reporter = userRepository.findById(reporterId).orElseThrow();
-        Issue issue = Issue.builder()
-                .title(title)
-                .description(description)
-                .category(category)
-                .locationLat(lat)
-                .locationLong(lng)
-                .priority(priority)
-                .status(Issue.Status.PENDING)
-                .reporter(reporter)
-                .mediaUrl(mediaUrl)
-                .createdAt(LocalDateTime.now())
-                .build();
+    @Autowired
+    private NotificationService notificationService; // To send notifications on status updates
+
+    public Issue createIssue(Issue issue, User reporter, Community community) {
+        issue.setReporter(reporter);
+        issue.setCommunity(community);
+        issue.setCreatedAt(LocalDateTime.now());
+        issue.setUpdatedAt(LocalDateTime.now());
+        // Set default values
+        if (issue.getStatus() == null) {
+            issue.setStatus(Issue.Status.PENDING);
+        }
+        if (issue.getPriority() == null) {
+            issue.setPriority(Issue.Priority.LOW);
+        }
+
         return issueRepository.save(issue);
     }
 
-    public List<Issue> listIssues() {
+    public Issue updateIssueStatus(Long issueId, Issue.Status newStatus, User official) {
+        return issueRepository.findById(issueId).map(issue -> {
+            issue.setStatus(newStatus);
+            issue.setUpdatedAt(LocalDateTime.now());
+            Issue updatedIssue = issueRepository.save(issue);
+            // Notify the reporter about the status change
+            notificationService.createNotification(issue.getReporter(), "Your issue '" + issue.getTitle() + "' has been updated to " + newStatus.name());
+            return updatedIssue;
+        }).orElseThrow(() -> new RuntimeException("Issue not found with id " + issueId));
+    }
+
+    public Issue assignIssue(Long issueId, User assignee) {
+        return issueRepository.findById(issueId).map(issue -> {
+            issue.setAssignee(assignee);
+            issue.setUpdatedAt(LocalDateTime.now());
+            Issue updatedIssue = issueRepository.save(issue);
+            // Notify the new assignee
+            notificationService.createNotification(assignee, "You have been assigned to the issue '" + issue.getTitle() + "'");
+            return updatedIssue;
+        }).orElseThrow(() -> new RuntimeException("Issue not found with id " + issueId));
+    }
+
+    public List<Issue> findAllIssues() {
         return issueRepository.findAll();
     }
 
-    public Optional<Issue> getIssue(Long id) {
-        return issueRepository.findById(id);
+    public List<Issue> findIssuesByStatus(Issue.Status status) {
+        return issueRepository.findByStatus(status);
     }
 
-    public Issue updateStatus(Long id, Issue.Status status) {
-        Issue issue = issueRepository.findById(id).orElseThrow();
-        issue.setStatus(status);
-        return issueRepository.save(issue);
+    public List<Issue> findIssuesByDepartment(Department department) {
+        return issueRepository.findByDepartment(department);
     }
 
-    public Issue assignIssue(Long id, Long assigneeId) {
-        Issue issue = issueRepository.findById(id).orElseThrow();
-        User assignee = userRepository.findById(assigneeId).orElseThrow();
-        issue.setAssignee(assignee);
-        return issueRepository.save(issue);
+    public List<Issue> findReportedIssues(User reporter) {
+        return issueRepository.findByReporter(reporter);
     }
 
-    public void deleteIssue(Long id) {
-        issueRepository.deleteById(id);
+    public Optional<Issue> findById(Long issueId) {
+        return issueRepository.findById(issueId);
     }
 }
-

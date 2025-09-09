@@ -1,34 +1,31 @@
 package org.example.civic_govt.service;
 
-import org.example.civic_govt.model.*;
-import org.example.civic_govt.repository.*;
+import org.example.civic_govt.model.Issue;
+import org.example.civic_govt.model.User;
+import org.example.civic_govt.model.Vote;
+import org.example.civic_govt.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class VoteService {
+
     @Autowired
     private VoteRepository voteRepository;
-    @Autowired
-    private IssueRepository issueRepository;
-    @Autowired
-    private UserRepository userRepository;
 
-    public Vote upvote(Long issueId, Long userId) {
-        Issue issue = issueRepository.findById(issueId).orElseThrow();
-        User user = userRepository.findById(userId).orElseThrow();
-        Vote vote = Vote.builder()
-                .issue(issue)
-                .user(user)
-                .createdAt(LocalDateTime.now())
-                .build();
+    public Vote voteForIssue(Issue issue, User user) {
+        // Check if the user has already voted on this issue
+        Optional<Vote> existingVote = voteRepository.findByIssueAndUser(issue, user);
+        if (existingVote.isPresent()) {
+            throw new IllegalStateException("User has already voted on this issue.");
+        }
+
+        Vote vote = new Vote();
+        vote.setIssue(issue);
+        vote.setUser(user);
+        vote.setCreatedAt(LocalDateTime.now());
         return voteRepository.save(vote);
     }
-
-    public long getVoteCount(Long issueId) {
-        Issue issue = issueRepository.findById(issueId).orElseThrow();
-        return voteRepository.countByIssue(issue);
-    }
 }
-
