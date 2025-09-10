@@ -1,5 +1,6 @@
 package org.example.civic_govt.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,9 +25,12 @@ public class Department {
     private User head;
 
     @OneToMany(mappedBy = "department")
+    @JsonIgnore
     private List<Issue> issues;
 
     // Added a list of officials to this department
     @OneToMany(mappedBy = "department")
+    @JsonIgnore
     private List<User> officials;
+
 }

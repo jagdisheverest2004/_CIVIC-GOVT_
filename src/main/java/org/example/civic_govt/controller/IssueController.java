@@ -1,8 +1,11 @@
 package org.example.civic_govt.controller;
 
+import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.Issue;
 import org.example.civic_govt.model.User;
 import org.example.civic_govt.model.Community;
+import org.example.civic_govt.repository.DepartmentRepository;
+import org.example.civic_govt.repository.IssueRepository;
 import org.example.civic_govt.service.IssueService;
 import org.example.civic_govt.service.UserService;
 import org.example.civic_govt.service.CommunityService;
@@ -13,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -27,6 +31,12 @@ public class IssueController {
 
     @Autowired
     private CommunityService communityService;
+
+    @Autowired
+    private IssueRepository issueRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
 
     @Autowired
     private AuthUtil authUtil;
@@ -60,7 +70,28 @@ public class IssueController {
 
     // Endpoint for officials to assign an issue
     @PutMapping("/{issueId}/assign/{assigneeId}")
-    public ResponseEntity<Issue> assignIssue(@PathVariable Long issueId, @PathVariable Long assigneeId) {
+    public ResponseEntity<?> assignIssue(@PathVariable Long issueId, @PathVariable Long assigneeId) {
+
+        User Admin = authUtil.getLoggedInUser();
+
+        if(Admin == null){
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        if(!Admin.getRole().equals(User.Role.ADMIN) ){
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        Department issueDepartment = issueRepository.findDepartmentById(issueId);
+        if(issueDepartment == null){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Issue Department not found.");
+        }
+        User headDepartment = departmentRepository.findHeadById(issueDepartment.getId());
+
+        if(!Objects.equals(Admin.getId(), headDepartment.getId())){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to assign issues outside your department.");
+        }
+
         Optional<User> assignee = userService.findById(assigneeId);
         if (assignee.isPresent()) {
             try {

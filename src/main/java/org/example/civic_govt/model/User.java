@@ -1,5 +1,6 @@
 package org.example.civic_govt.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -22,23 +23,30 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "department_id")
+    @JsonIgnore
     private Department department; // Relevant if user is an OFFICIAL
 
     @OneToMany(mappedBy = "reporter")
+    @JsonIgnore
     private List<Issue> reportedIssues; // Corrected mapping for issues reported by the user
 
     @OneToMany(mappedBy = "assignee")
+    @JsonIgnore
     private List<Issue> assignedIssues; // New mapping for issues assigned to the user
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<Vote> votes;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<Comment> comments;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<Notification> notifications;
 
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -54,6 +62,7 @@ public class User {
     }
 
     public enum Role {
+        HEAD,
         ADMIN,
         CITIZEN,
         OFFICIAL

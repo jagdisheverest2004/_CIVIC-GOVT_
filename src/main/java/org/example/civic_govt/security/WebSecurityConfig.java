@@ -67,7 +67,7 @@ public class WebSecurityConfig {
                                 .requestMatchers(HttpMethod.POST, "/api/auth/issues/create/**").hasAuthority("CITIZEN") // Citizens report issues
                                 .requestMatchers(HttpMethod.GET, "/api/auth/issues/fetch-all").authenticated() // Anyone logged in can see all issues
                                 .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN") // Only admins can access the admin portal
-                                .requestMatchers("/api/auth/issues/*/assign/*").hasAuthority("OFFICIAL") // Only officials can assign issues
+                                .requestMatchers("/api/auth/issues/*/assign/*").hasAuthority("ADMIN") // Only officials can assign issues
                                 .requestMatchers("/api/auth/issues/*/status/*").hasAuthority("OFFICIAL") // Only officials can update issue status
                                 .requestMatchers("/api/auth/issues/*/comments/*").hasAuthority("CITIZEN") // Corrected pattern for comments
                                 .requestMatchers("/api/auth/issues/*/votes/*").hasAuthority("CITIZEN") // Corrected pattern for votes

@@ -70,32 +70,35 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    loginRequest.getUsername(), loginRequest.getPassword(), Collections.singletonList((GrantedAuthority) () -> "CITIZEN"));
+            // Step 1: Authenticate the user's credentials using the AuthenticationManager
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+            // Step 2: Set the Authentication object in the SecurityContextHolder
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            User user = userRepository.findByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new NoSuchElementException("User not found."));
+            // Step 3: Get the user details from the authenticated principal
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-            UserDetailsImpl userDetails = new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(), user.getPassword(), Collections.singletonList((GrantedAuthority) () -> "CITIZEN"));
-
-            ResponseCookie jwtCookie = jwtUtils.generateTokenFromCookie(userDetails);
+            // Step 4: Retrieve the roles from the UserDetails object
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .toList();
 
+            // Step 5: Generate the JWT cookie and create the response
+            ResponseCookie jwtCookie = jwtUtils.generateTokenFromCookie(userDetails);
+
             UserInfoResponse userInfoResponse = new UserInfoResponse(
                     userDetails.getId(),
                     userDetails.getUsername(),
-                    roles,
-                    jwtCookie.toString()
+                    roles
             );
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                     .body(userInfoResponse);
-        }
-        catch (Exception e) {
+
+        } catch (Exception e) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Invalid username or password!"));
