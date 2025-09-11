@@ -7,14 +7,17 @@ import org.example.civic_govt.model.Zone;
 import org.example.civic_govt.payload.issues.CreateIssueDTO;
 import org.example.civic_govt.payload.issues.FetchIssueDTO;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
+import org.example.civic_govt.payload.issues.IssueFilterDTO;
 import org.example.civic_govt.repository.DepartmentRepository;
 import org.example.civic_govt.repository.IssueRepository;
 import org.example.civic_govt.repository.UserRepository;
+import org.example.civic_govt.util.IssueSpecification;
 import org.example.civic_govt.util.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,6 +38,9 @@ public class IssueService {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private IssueSpecification issueSpecification;
 
     @Autowired
     private PageUtil pageUtil;
@@ -107,7 +113,7 @@ public class IssueService {
                         if (foundIssue.getPhotos() != null) {
                             foundIssue.getPhotos().add(imageUrl);
                         } else {
-                            foundIssue.setPhotos(new java.util.ArrayList<>(List.of(imageUrl)));
+                            foundIssue.setPhotos(List.of(imageUrl));
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -194,6 +200,10 @@ public class IssueService {
     public FetchIssuesDTO getAllIssues(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Pageable pageable = pageUtil.createPageable(pageNumber, pageSize, sortBy, sortOrder);
         Page<Issue> issuePage = issueRepository.findAll(pageable);
+        return getFetchIssuesDTO(issuePage);
+    }
+
+    private FetchIssuesDTO getFetchIssuesDTO(Page<Issue> issuePage) {
         List<FetchIssueDTO> issueDTOs = issuePage.getContent().stream().map(this::createFetchIssueDTO).toList();
         FetchIssuesDTO fetchIssuesDTO = new FetchIssuesDTO();
         fetchIssuesDTO.setIssuesDTO(issueDTOs);
@@ -203,5 +213,49 @@ public class IssueService {
         fetchIssuesDTO.setTotalPages(issuePage.getTotalPages());
         fetchIssuesDTO.setLastPage(issuePage.isLast());
         return fetchIssuesDTO;
+    }
+
+    public FetchIssuesDTO getIssuesWithFilters(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, IssueFilterDTO filters) {
+        Pageable pageable = pageUtil.createPageable(pageNumber, pageSize, sortBy, sortOrder);
+        Specification<Issue> spec = IssueSpecification.withFilters(filters);
+        Page<Issue> issuePage = issueRepository.findAll(spec, pageable);
+        return getFetchIssuesDTO(issuePage);
+    }
+
+    public FetchIssuesDTO getReportedIssues(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, IssueFilterDTO filters) {
+        Pageable pageable = pageUtil.createPageable(pageNumber, pageSize, sortBy, sortOrder);
+        Specification<Issue> spec = (IssueSpecification.byReporter(userId));
+        spec = spec.and(IssueSpecification.withFilters(filters));
+        Page<Issue> issuePage = issueRepository.findAll(spec, pageable);
+        List<FetchIssueDTO> issueDTOs = issuePage.getContent().stream().map(this::createFetchIssueDTO).toList();
+        FetchIssuesDTO fetchIssuesDTO = new FetchIssuesDTO();
+        fetchIssuesDTO.setIssuesDTO(issueDTOs);
+        fetchIssuesDTO.setPageNumber(issuePage.getNumber());
+        fetchIssuesDTO.setPageSize(issuePage.getSize());
+        fetchIssuesDTO.setTotalElements(issuePage.getTotalElements());
+        fetchIssuesDTO.setTotalPages(issuePage.getTotalPages());
+        fetchIssuesDTO.setLastPage(issuePage.isLast());
+        return fetchIssuesDTO;
+    }
+
+    public FetchIssuesDTO getAssignedIssues(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, IssueFilterDTO filters) {
+        Pageable pageable = pageUtil.createPageable(pageNumber, pageSize, sortBy, sortOrder);
+        Specification<Issue> spec = (IssueSpecification.byAssignee(userId));
+        spec = spec.and(IssueSpecification.withFilters(filters));
+        Page<Issue> issuePage = issueRepository.findAll(spec, pageable);
+        List<FetchIssueDTO> issueDTOs = issuePage.getContent().stream().map(this::createFetchIssueDTO).toList();
+        FetchIssuesDTO fetchIssuesDTO = new FetchIssuesDTO();
+        fetchIssuesDTO.setIssuesDTO(issueDTOs);
+        fetchIssuesDTO.setPageNumber(issuePage.getNumber());
+        fetchIssuesDTO.setPageSize(issuePage.getSize());
+        fetchIssuesDTO.setTotalElements(issuePage.getTotalElements());
+        fetchIssuesDTO.setTotalPages(issuePage.getTotalPages());
+        fetchIssuesDTO.setLastPage(issuePage.isLast());
+        return fetchIssuesDTO;
+    }
+
+    public FetchIssueDTO getSingleIssueDetails(Long issueId) {
+        Issue issue = issueRepository.findById(issueId).orElseThrow(() -> new RuntimeException("Issue not found with id " + issueId));
+        return createFetchIssueDTO(issue);
     }
 }

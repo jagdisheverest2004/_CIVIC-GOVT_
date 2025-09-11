@@ -34,7 +34,7 @@ public class User {
     @JoinColumn(name = "zone_id")
     private Zone zone;
 
-    @ManyToMany(mappedBy = "contributors")
+    @ManyToMany(mappedBy = "reporters")
     private List<Issue> reportedIssues;
 
     @OneToMany(mappedBy = "assignee")

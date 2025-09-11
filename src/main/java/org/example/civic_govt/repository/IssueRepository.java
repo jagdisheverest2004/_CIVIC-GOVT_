@@ -1,19 +1,16 @@
 package org.example.civic_govt.repository;
 
-import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.Issue;
 import org.example.civic_govt.model.User;
 import org.example.civic_govt.model.Zone;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface IssueRepository extends JpaRepository<Issue, Long> {
-
-    @Query("SELECT i.department FROM Issue i WHERE i.id = ?1")
-    Department findDepartmentById(Long issueId);
+public interface IssueRepository extends JpaRepository<Issue, Long> , JpaSpecificationExecutor<Issue> {
 
     @Query("SELECT i FROM Issue i WHERE i.title = ?1 AND i.latitude = ?2 AND i.longitude = ?3")
     Optional<Issue> findByTitleAndLatitudeAndLongitude(String title, Double latitude, Double longitude);

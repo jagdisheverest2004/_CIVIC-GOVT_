@@ -1,13 +1,18 @@
 package org.example.civic_govt.config;
 
-import org.example.civic_govt.model.User;
 import org.example.civic_govt.model.Department;
-import org.example.civic_govt.repository.UserRepository;
+import org.example.civic_govt.model.District;
+import org.example.civic_govt.model.User;
+import org.example.civic_govt.model.Zone;
 import org.example.civic_govt.repository.DepartmentRepository;
+import org.example.civic_govt.repository.DistrictRepository;
+import org.example.civic_govt.repository.UserRepository;
+import org.example.civic_govt.repository.ZoneRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,68 +23,141 @@ public class DataInitializer {
     public CommandLineRunner initDefaultUsersAndDepartments(
             UserRepository userRepository,
             DepartmentRepository departmentRepository,
+            DistrictRepository districtRepository,
+            ZoneRepository zoneRepository,
             PasswordEncoder passwordEncoder) {
         return args -> {
-
-            // Pre-create some users for roles
+            // --- 1. Create a global ADMIN user ---
             User adminUser = userRepository.findByUsername("admin")
                     .orElseGet(() -> {
-                        User newAdmin = new User();
-                        newAdmin.setUsername("admin");
-                        newAdmin.setEmail("admin1@civicgovt.com");
-                        newAdmin.setPassword(passwordEncoder.encode("adminpass"));
-                        newAdmin.setRole(User.Role.ADMIN);
+                        User newAdmin = new User("admin", "admin@civicgovt.com", passwordEncoder.encode("adminpass"), User.Role.ADMIN);
                         return userRepository.save(newAdmin);
                     });
+            System.out.println("Admin user created: " + adminUser.getUsername());
 
-            User headUser1 = userRepository.findByUsername("head_user1")
-                    .orElseGet(() -> {
-                        User newHead = new User();
-                        newHead.setUsername("head_user1");
-                        newHead.setEmail("head1@civicgovt.com");
-                        newHead.setPassword(passwordEncoder.encode("headpass1"));
-                        newHead.setRole(User.Role.OFFICIAL); // Change to official role
-                        return userRepository.save(newHead);
-                    });
-
-            User officialUser1 = userRepository.findByUsername("official_user1")
-                    .orElseGet(() -> {
-                        User newOfficial = new User();
-                        newOfficial.setUsername("official_user1");
-                        newOfficial.setEmail("official1@civicgovt.com");
-                        newOfficial.setPassword(passwordEncoder.encode("officialpass1"));
-                        newOfficial.setRole(User.Role.OFFICIAL);
-                        return userRepository.save(newOfficial);
-                    });
-
-            // Initialize all departments with default issues
+            // --- 2. Create Departments, their hierarchy, and officials ---
             List<String> agriIssues = Arrays.asList("Farm water issues", "Irrigation system failure", "Agriculture infrastructure damage", "Crop support queries");
-            createAndSaveDepartment(departmentRepository, "Agriculture & Farmers Welfare", headUser1, agriIssues);
+            createDepartmentAndHierarchy(
+                    departmentRepository, districtRepository, zoneRepository, userRepository, passwordEncoder,
+                    "Agriculture & Farmers Welfare", "head_agri", "dist_head_agri", "zone_head_agri", "sub_agri", agriIssues
+            );
 
-            List<String> energyIssues = Arrays.asList("Power outages", "Street light not working", "Damaged power lines");
-            createAndSaveDepartment(departmentRepository, "Energy", officialUser1, energyIssues);
+            List<String> energyIssues = Arrays.asList("Electricity", "Street lights", "Power outages", "Grid issues");
+            createDepartmentAndHierarchy(
+                    departmentRepository, districtRepository, zoneRepository, userRepository, passwordEncoder,
+                    "Energy", "head_energy", "dist_head_energy", "zone_head_energy", "sub_energy", energyIssues
+            );
 
-            List<String> environmentIssues = Arrays.asList("Illegal tree cutting", "Industrial pollution", "Forest encroachment");
-            createAndSaveDepartment(departmentRepository, "Environment & Forests (Climate Change)", null, environmentIssues);
+            List<String> municipalIssues = Arrays.asList("Local roads", "Water supply", "Garbage", "Drains", "Public lighting");
+            createDepartmentAndHierarchy(
+                    departmentRepository, districtRepository, zoneRepository, userRepository, passwordEncoder,
+                    "Municipal Administration & Water Supply", "head_municipal", "dist_head_municipal", "zone_head_municipal", "sub_municipal", municipalIssues
+            );
 
-            List<String> municipalIssues = Arrays.asList("Potholes", "Garbage collection issues", "Clogged drains", "Public lighting failure");
-            createAndSaveDepartment(departmentRepository, "Municipal Administration & Water Supply", null, municipalIssues);
-
-            List<String> transportIssues = Arrays.asList("Public transport delays", "Damaged roads", "Traffic signal malfunction");
-            createAndSaveDepartment(departmentRepository, "Transport", null, transportIssues);
-
-            System.out.println("Default users and departments initialized.");
+            System.out.println("Default users, departments, districts, and zones initialized.");
         };
     }
 
-    private Department createAndSaveDepartment(DepartmentRepository departmentRepository, String name, User head, List<String> issues) {
-        return departmentRepository.findByName(name)
+    private void createDepartmentAndHierarchy(
+            DepartmentRepository departmentRepository,
+            DistrictRepository districtRepository,
+            ZoneRepository zoneRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            String deptName, String deptHeadUsername, String distHeadUsername, String zoneHeadUsername, String subUsername, List<String> defaultIssues) {
+
+        // Create Department Head
+        User deptHead = userRepository.findByUsername(deptHeadUsername).orElseGet(() -> {
+            User newHead = new User(deptHeadUsername, deptHeadUsername + "@civicgovt.com", passwordEncoder.encode("password"), User.Role.DEPT_HEAD);
+            return userRepository.save(newHead);
+        });
+
+        // Create Department
+        Department department = departmentRepository.findByName(deptName).orElseGet(() -> {
+            Department newDepartment = new Department();
+            newDepartment.setName(deptName);
+            newDepartment.setDeptHead(deptHead);
+            newDepartment.setDefaultIssueTypes(defaultIssues);
+            return departmentRepository.save(newDepartment);
+        });
+
+        // Link Department Head to the Department
+        if (deptHead.getDepartment() == null) {
+            deptHead.setDepartment(department);
+            userRepository.save(deptHead);
+        }
+
+        // Create District Head
+        User distHead = userRepository.findByUsername(distHeadUsername).orElseGet(() -> {
+            User newHead = new User(distHeadUsername, distHeadUsername + "@civicgovt.com", passwordEncoder.encode("password"), User.Role.DISTRICT_HEAD);
+            return userRepository.save(newHead);
+        });
+
+        // Create District
+        District district = districtRepository.findByName("North " + deptName.replace(" ", ""))
                 .orElseGet(() -> {
-                    Department newDepartment = new Department();
-                    newDepartment.setName(name);
-                    newDepartment.setHead(head);
-                    newDepartment.setDefaultIssueTypes(issues);
-                    return departmentRepository.save(newDepartment);
+                    District newDistrict = new District();
+                    newDistrict.setName("North " + deptName.replace(" ", ""));
+                    newDistrict.setDepartment(department);
+                    newDistrict.setDistHead(distHead);
+                    return districtRepository.save(newDistrict);
                 });
+
+        // Link District Head to the Department and District
+        if (distHead.getDepartment() == null) {
+            distHead.setDepartment(department);
+        }
+        if (distHead.getDistrict() == null) {
+            distHead.setDistrict(district);
+        }
+        userRepository.save(distHead);
+
+        // Create Zone Head
+        User zoneHead = userRepository.findByUsername(zoneHeadUsername).orElseGet(() -> {
+            User newHead = new User(zoneHeadUsername, zoneHeadUsername + "@civicgovt.com", passwordEncoder.encode("password"), User.Role.ZONE_HEAD);
+            return userRepository.save(newHead);
+        });
+
+        // Create Zone
+        Zone zone = zoneRepository.findZoneByDistrictName(district, "Zone 1 " + deptName.replace(" ", ""));
+        if(zone==null) {
+            Zone newZone = new Zone();
+            newZone.setName("Zone 1 " + deptName.replace(" ", ""));
+            newZone.setDistrict(district);
+            newZone.setZoneHead(zoneHead);
+            zoneRepository.save(newZone);
+        }
+
+        // Link Zone Head to the hierarchy
+        if (zoneHead.getDepartment() == null) {
+            zoneHead.setDepartment(department);
+        }
+        if (zoneHead.getDistrict() == null) {
+            zoneHead.setDistrict(district);
+        }
+        if (zoneHead.getZone() == null) {
+            zoneHead.setZone(zone);
+        }
+        userRepository.save(zoneHead);
+
+        // Create Subordinate Official
+        User subordinate = userRepository.findByUsername(subUsername).orElseGet(() -> {
+            User newSub = new User(subUsername, subUsername + "@civicgovt.com", passwordEncoder.encode("password"), User.Role.SUBORDINATE);
+            return userRepository.save(newSub);
+        });
+
+        // Link Subordinate to the hierarchy
+        if (subordinate.getDepartment() == null) {
+            subordinate.setDepartment(department);
+        }
+        if (subordinate.getDistrict() == null) {
+            subordinate.setDistrict(district);
+        }
+        if (subordinate.getZone() == null) {
+            subordinate.setZone(zone);
+        }
+        userRepository.save(subordinate);
+
+        System.out.println("Department '" + deptName + "' and its hierarchy created.");
     }
 }
