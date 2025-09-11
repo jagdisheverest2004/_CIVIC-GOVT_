@@ -1,5 +1,6 @@
 package org.example.civic_govt.security;
 
+import org.example.civic_govt.model.User;
 import org.example.civic_govt.security.jwt.AuthEntryPointJwt;
 import org.example.civic_govt.security.jwt.AuthTokenFilter;
 import org.example.civic_govt.security.services.UserDetailsServiceImpl;
@@ -63,15 +64,19 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/api/auth/authenticate/**").permitAll() // Sign-up and sign-in are public
-                                .requestMatchers(HttpMethod.POST, "/api/auth/issues/create/**").hasAuthority("CITIZEN") // Citizens report issues
-                                .requestMatchers(HttpMethod.GET, "/api/auth/issues/fetch-all").authenticated() // Anyone logged in can see all issues
-                                .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN") // Only admins can access the admin portal
-                                .requestMatchers("/api/auth/issues/*/assign/*").hasAuthority("ADMIN") // Only officials can assign issues
-                                .requestMatchers("/api/auth/issues/*/status/*").hasAuthority("OFFICIAL") // Only officials can update issue status
-                                .requestMatchers("/api/auth/issues/*/comments/*").hasAuthority("CITIZEN") // Corrected pattern for comments
-                                .requestMatchers("/api/auth/issues/*/votes/*").hasAuthority("CITIZEN") // Corrected pattern for votes
-                                .requestMatchers("/api/auth/users/**").hasAnyAuthority("CITIZEN", "OFFICIAL", "ADMIN") // Corrected and broadened access
+                                .requestMatchers("/api/auth/authenticate/signup").permitAll()
+                                .requestMatchers("/api/auth/authenticate/signin").permitAll()
+                                .requestMatchers("/api/auth/authenticate/signout").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/auth/issues/create-issue").hasAuthority("CITIZEN")
+                                .requestMatchers(HttpMethod.GET, "/api/auth/issues/fetch-all").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/auth/issues/departments/*/issues").authenticated()
+                                .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN")
+                                .requestMatchers("/api/auth/issues/*/assign/*").hasAuthority("ZONE_HEAD")
+                                .requestMatchers("/api/auth/issues/*/status/*").hasAuthority("SUBORDINATE")
+                                .requestMatchers("/api/auth/issues/*/comments/*").hasAuthority("CITIZEN")
+                                .requestMatchers("/api/auth/issues/*/votes/*").hasAuthority("CITIZEN")
+                                .requestMatchers("/api/auth/users/**").authenticated()
+                                .requestMatchers("/api/auth/account/**").hasAnyAuthority("ADMIN","ZONE_HEAD","DEPT_HEAD","DISTRICT_HEAD")
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

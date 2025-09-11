@@ -18,7 +18,6 @@ public class Notification {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonIgnore
     private User user;
 
     private String message;

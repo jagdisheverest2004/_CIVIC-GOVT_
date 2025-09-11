@@ -21,16 +21,21 @@ public class Department {
     private String name;
 
     @OneToOne
-    @JoinColumn(name = "head_user_id")
-    private User head;
+    @JoinColumn(name = "dept_head_id")
+    private User deptHead;
 
     @OneToMany(mappedBy = "department")
-    @JsonIgnore
+    private List<District> districts;
+
+    @OneToMany(mappedBy = "department")
     private List<Issue> issues;
 
-    // Added a list of officials to this department
     @OneToMany(mappedBy = "department")
-    @JsonIgnore
-    private List<User> officials;
+    private List<User> districtOfficials;
+
+    @ElementCollection
+    @CollectionTable(name = "department_issue_types", joinColumns = @JoinColumn(name = "department_id"))
+    @Column(name = "issue_type")
+    private List<String> defaultIssueTypes;
 
 }

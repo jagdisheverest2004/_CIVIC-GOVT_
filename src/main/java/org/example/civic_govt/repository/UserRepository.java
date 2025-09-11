@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.example.civic_govt.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -14,6 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(@NotBlank @Size(max = 50) @Email String email);
 
-    Optional<User> findByEmail(String email);
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.id = ?1 AND u.zone.id = ?2")
+    Boolean isUserInZone(Long assigneeId, Long id);
 }
 

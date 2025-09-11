@@ -1,6 +1,5 @@
 package org.example.civic_govt.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -16,8 +15,6 @@ public class Issue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
-    private String description;
-    private String category;
 
     // Added location data as per the problem description
     private Double latitude;
@@ -29,8 +26,12 @@ public class Issue {
     private List<String> photos;
 
     @ManyToOne
-    @JoinColumn(name = "community_id")
-    private Community community;
+    @JoinColumn(name = "zone_id")
+    private Zone zone;
+
+    @ManyToOne
+    @JoinColumn(name = "district_id")
+    private District district;
 
     @ManyToOne
     @JoinColumn(name = "department_id")
@@ -48,15 +49,19 @@ public class Issue {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    @ManyToOne
-    @JoinColumn(name = "reporter_id")
-    private User reporter;
+    @ManyToMany
+    @JoinTable(
+            name = "issue_reporters",
+            joinColumns = @JoinColumn(name = "issue_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> reporters;
 
     @ManyToOne
     @JoinColumn(name = "assignee_id")
     private User assignee;
 
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt;
 

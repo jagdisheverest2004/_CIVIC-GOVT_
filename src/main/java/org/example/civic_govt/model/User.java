@@ -16,34 +16,37 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
     @ManyToOne
     @JoinColumn(name = "department_id")
-    @JsonIgnore
-    private Department department; // Relevant if user is an OFFICIAL
+    private Department department;
 
-    @OneToMany(mappedBy = "reporter")
-    @JsonIgnore
-    private List<Issue> reportedIssues; // Corrected mapping for issues reported by the user
+    @ManyToOne
+    @JoinColumn(name = "district_id")
+    private District district;
+
+    @ManyToOne
+    @JoinColumn(name = "zone_id")
+    private Zone zone;
+
+    @ManyToMany(mappedBy = "contributors")
+    private List<Issue> reportedIssues;
 
     @OneToMany(mappedBy = "assignee")
-    @JsonIgnore
-    private List<Issue> assignedIssues; // New mapping for issues assigned to the user
+    private List<Issue> assignedIssues;
 
     @OneToMany(mappedBy = "user")
-    @JsonIgnore
     private List<Vote> votes;
 
     @OneToMany(mappedBy = "user")
-    @JsonIgnore
     private List<Comment> comments;
 
     @OneToMany(mappedBy = "user")
-    @JsonIgnore
     private List<Notification> notifications;
 
     @JsonIgnore
@@ -61,10 +64,18 @@ public class User {
         this.role = role;
     }
 
+    public User(String username, String email, String passwordHash){
+        this.username = username;
+        this.email = email;
+        this.password = passwordHash;
+    }
+
     public enum Role {
         ADMIN,
-        HEAD,
+        DEPT_HEAD,
+        DISTRICT_HEAD,
+        ZONE_HEAD,
+        SUBORDINATE,
         CITIZEN,
-        OFFICIER
     }
 }

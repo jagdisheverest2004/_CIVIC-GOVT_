@@ -8,7 +8,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class DataInitializer {
@@ -19,18 +20,28 @@ public class DataInitializer {
             DepartmentRepository departmentRepository,
             PasswordEncoder passwordEncoder) {
         return args -> {
-            // Check and create a default Admin user if they don't exist
-            User adminUser1 = userRepository.findByUsername("admin_user1")
+
+            // Pre-create some users for roles
+            User adminUser = userRepository.findByUsername("admin")
                     .orElseGet(() -> {
                         User newAdmin = new User();
-                        newAdmin.setUsername("admin_user1");
+                        newAdmin.setUsername("admin");
                         newAdmin.setEmail("admin1@civicgovt.com");
-                        newAdmin.setPassword(passwordEncoder.encode("adminpass1"));
+                        newAdmin.setPassword(passwordEncoder.encode("adminpass"));
                         newAdmin.setRole(User.Role.ADMIN);
                         return userRepository.save(newAdmin);
                     });
 
-            // Check and create a default Official user if they don't exist
+            User headUser1 = userRepository.findByUsername("head_user1")
+                    .orElseGet(() -> {
+                        User newHead = new User();
+                        newHead.setUsername("head_user1");
+                        newHead.setEmail("head1@civicgovt.com");
+                        newHead.setPassword(passwordEncoder.encode("headpass1"));
+                        newHead.setRole(User.Role.OFFICIAL); // Change to official role
+                        return userRepository.save(newHead);
+                    });
+
             User officialUser1 = userRepository.findByUsername("official_user1")
                     .orElseGet(() -> {
                         User newOfficial = new User();
@@ -41,59 +52,34 @@ public class DataInitializer {
                         return userRepository.save(newOfficial);
                     });
 
-            User adminUser2 = userRepository.findByUsername("admin_user2")
-                    .orElseGet(() -> {
-                        User newAdmin = new User();
-                        newAdmin.setUsername("admin_user2");
-                        newAdmin.setEmail("admin2@civicgovt.com");
-                        newAdmin.setPassword(passwordEncoder.encode("adminpass2"));
-                        newAdmin.setRole(User.Role.ADMIN);
-                        return userRepository.save(newAdmin);
-                    });
+            // Initialize all departments with default issues
+            List<String> agriIssues = Arrays.asList("Farm water issues", "Irrigation system failure", "Agriculture infrastructure damage", "Crop support queries");
+            createAndSaveDepartment(departmentRepository, "Agriculture & Farmers Welfare", headUser1, agriIssues);
 
-            // Check and create a default Official user if they don't exist
-            User officialUser2 = userRepository.findByUsername("official_user2")
-                    .orElseGet(() -> {
-                        User newOfficial = new User();
-                        newOfficial.setUsername("official_user2");
-                        newOfficial.setEmail("official2@civicgovt.com");
-                        newOfficial.setPassword(passwordEncoder.encode("officialpass2"));
-                        newOfficial.setRole(User.Role.OFFICIAL);
-                        return userRepository.save(newOfficial);
-                    });
+            List<String> energyIssues = Arrays.asList("Power outages", "Street light not working", "Damaged power lines");
+            createAndSaveDepartment(departmentRepository, "Energy", officialUser1, energyIssues);
 
-            // Check and create a default department if it doesn't exist
-            Department publicWorks = departmentRepository.findByName("Public Works")
-                    .orElseGet(() -> {
-                        Department newDepartment = new Department();
-                        newDepartment.setName("Public Works");
-                        return departmentRepository.save(newDepartment);
-                    });
+            List<String> environmentIssues = Arrays.asList("Illegal tree cutting", "Industrial pollution", "Forest encroachment");
+            createAndSaveDepartment(departmentRepository, "Environment & Forests (Climate Change)", null, environmentIssues);
 
-            Department transportWorks = departmentRepository.findByName("Transport Works")
-                    .orElseGet(() -> {
-                        Department newDepartment = new Department();
-                        newDepartment.setName("Transport Works");
-                        return departmentRepository.save(newDepartment);
-                    });
+            List<String> municipalIssues = Arrays.asList("Potholes", "Garbage collection issues", "Clogged drains", "Public lighting failure");
+            createAndSaveDepartment(departmentRepository, "Municipal Administration & Water Supply", null, municipalIssues);
 
-            // Assign Admin as the head of the department
-            publicWorks.setHead(adminUser1);
-            departmentRepository.save(publicWorks);
-
-            // Assign Official to the department
-            officialUser1.setDepartment(publicWorks);
-            userRepository.save(officialUser1);
-
-            // Assign Admin as the head of the department
-            transportWorks.setHead(adminUser2);
-            departmentRepository.save(transportWorks);
-
-            // Assign Official to the department
-            officialUser2.setDepartment(transportWorks);
-            userRepository.save(officialUser2);
+            List<String> transportIssues = Arrays.asList("Public transport delays", "Damaged roads", "Traffic signal malfunction");
+            createAndSaveDepartment(departmentRepository, "Transport", null, transportIssues);
 
             System.out.println("Default users and departments initialized.");
         };
+    }
+
+    private Department createAndSaveDepartment(DepartmentRepository departmentRepository, String name, User head, List<String> issues) {
+        return departmentRepository.findByName(name)
+                .orElseGet(() -> {
+                    Department newDepartment = new Department();
+                    newDepartment.setName(name);
+                    newDepartment.setHead(head);
+                    newDepartment.setDefaultIssueTypes(issues);
+                    return departmentRepository.save(newDepartment);
+                });
     }
 }

@@ -14,19 +14,19 @@ public class DepartmentService {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    public Department createDepartment(Department department) {
-        return departmentRepository.save(department);
+    public void createDepartment(String name) {
+        if(departmentRepository.findByName(name).isPresent()) {
+            throw new RuntimeException("Department with name " + name + " already exists.");
+        }
+        Department department = new Department();
+        department.setName(name);
+        departmentRepository.save(department);
     }
 
-    public List<Department> findAll() {
-        return departmentRepository.findAll();
+    public Department findDepartmentByName(String name) {
+        return departmentRepository.findByName(name)
+                .orElseThrow(() -> new RuntimeException("Department not found with name " + name));
     }
 
-    public Optional<Department> findById(Long id) {
-        return departmentRepository.findById(id);
-    }
 
-    public Optional<Department> findByName(String name) {
-        return departmentRepository.findByName(name);
-    }
 }

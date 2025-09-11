@@ -17,7 +17,6 @@ public class Vote {
 
     @ManyToOne
     @JoinColumn(name = "issue_id")
-    @JsonIgnore
     private Issue issue;
 
     @ManyToOne
