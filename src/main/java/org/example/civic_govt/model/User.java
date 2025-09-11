@@ -62,9 +62,9 @@ public class User {
     }
 
     public enum Role {
-        HEAD,
         ADMIN,
+        HEAD,
         CITIZEN,
-        OFFICIAL
+        OFFICIER
     }
 }
