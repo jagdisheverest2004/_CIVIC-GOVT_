@@ -70,22 +70,13 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
-            // Step 1: Authenticate the user's credentials using the AuthenticationManager
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-            // Step 2: Set the Authentication object in the SecurityContextHolder
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // Step 3: Get the user details from the authenticated principal
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-            // Step 4: Retrieve the roles from the UserDetails object
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .toList();
-
-            // Step 5: Generate the JWT cookie and create the response
             ResponseCookie jwtCookie = jwtUtils.generateTokenFromCookie(userDetails);
 
             UserInfoResponse userInfoResponse = new UserInfoResponse(

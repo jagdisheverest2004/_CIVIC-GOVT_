@@ -50,18 +50,15 @@ public class IssueController {
 
     // Endpoint for citizens to create a new issue
     @PostMapping("/create-issue")
-    public ResponseEntity<?> createIssue(@RequestBody CreateIssueDTO createIssueDTO,@RequestParam MultipartFile[] images) {
-        try{
+    public ResponseEntity<?> createIssue(@ModelAttribute CreateIssueDTO createIssueDTO) {
+        try {
             User reporterUser = authUtil.getLoggedInUser();
-            Optional<User> reporter = userService.findById(reporterUser.getId());
-            if(reporter.isEmpty()){
-                throw new Exception();
-            }
-            FetchIssueDTO issueDTO = issueService.createIssue(createIssueDTO, reporter.get(),images);
+            FetchIssueDTO issueDTO = issueService.createIssue(createIssueDTO, reporterUser);
             return ResponseEntity.status(HttpStatus.CREATED).body(issueDTO);
-        }
-        catch(Exception e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not authorized to create an issue.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 

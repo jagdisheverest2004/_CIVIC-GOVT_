@@ -21,6 +21,7 @@ public class FetchIssueDTO {
     private Double latitude;
     private Double longitude;
     private List<String> reporters;
+    private List<String> photosUrls;
     private Long upvoteCount;
     private Long commentCount;
     private List<String> photos;

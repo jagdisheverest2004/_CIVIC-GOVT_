@@ -1,5 +1,6 @@
 package org.example.civic_govt.security;
 
+import org.example.civic_govt.model.User;
 import org.example.civic_govt.security.jwt.AuthEntryPointJwt;
 import org.example.civic_govt.security.jwt.AuthTokenFilter;
 import org.example.civic_govt.security.services.UserDetailsServiceImpl;
@@ -62,12 +63,16 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
+                                .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
                                 .requestMatchers("/api/auth/authenticate/signup").permitAll()
                                 .requestMatchers("/api/auth/authenticate/signin").permitAll()
                                 .requestMatchers("/api/auth/authenticate/signout").authenticated()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/issues/create-issue").hasAuthority("CITIZEN")
+                                .requestMatchers(HttpMethod.POST, "/api/auth/issues/create-issue").hasAuthority(User.Role.CITIZEN.name())
                                 .requestMatchers(HttpMethod.GET, "/api/auth/issues/fetch-all").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/api/auth/issues/departments/*/issues").authenticated()
+                                .requestMatchers("/api/auth/departments/**").hasAuthority("DEPT_HEAD")
+                                .requestMatchers("/api/auth/districts/**").hasAuthority("DISTRICT_HEAD")
+                                .requestMatchers("/api/auth/zones/**").hasAuthority("ZONE_HEAD")
                                 .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN")
                                 .requestMatchers("/api/auth/issues/*/assign/*").hasAuthority("ZONE_HEAD")
                                 .requestMatchers("/api/auth/issues/*/status/*").hasAuthority("SUBORDINATE")
@@ -75,6 +80,7 @@ public class WebSecurityConfig {
                                 .requestMatchers("/api/auth/issues/*/votes/*").hasAuthority("CITIZEN")
                                 .requestMatchers("/api/auth/users/**").authenticated()
                                 .requestMatchers("/api/auth/account/**").hasAnyAuthority("ADMIN","ZONE_HEAD","DEPT_HEAD","DISTRICT_HEAD")
+                                .requestMatchers("/images/**").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

@@ -12,9 +12,6 @@ import java.util.Optional;
 
 public interface IssueRepository extends JpaRepository<Issue, Long> , JpaSpecificationExecutor<Issue> {
 
-    @Query("SELECT i FROM Issue i WHERE i.title = ?1 AND i.latitude = ?2 AND i.longitude = ?3")
-    Optional<Issue> findByTitleAndLatitudeAndLongitude(String title, Double latitude, Double longitude);
-
     @Query("SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END FROM Issue i WHERE i.id = ?1 AND i.zone.zoneHead.id = ?2")
     Boolean existsIssueByIdAndHeadId(Long issueId,Long headId);
 
@@ -23,5 +20,8 @@ public interface IssueRepository extends JpaRepository<Issue, Long> , JpaSpecifi
 
     @Query("SELECT i.reporters FROM Issue i WHERE i.id = ?1")
     List<User> findReportersByIssueId(Long id);
+
+    @Query("SELECT i FROM Issue i WHERE i.title = ?1 AND i.latitude = ?2 AND i.longitude = ?3 AND i.priority = ?4 AND i.department.name = ?5 AND i.district.name = ?6 AND i.zone.name = ?7")
+    Optional<Issue> findByExistingFields(String title, Double latitude, Double longitude, Issue.Priority priority, String departmentName, String districtName, String zoneName);
 }
 

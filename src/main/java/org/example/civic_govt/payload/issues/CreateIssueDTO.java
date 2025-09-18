@@ -3,6 +3,8 @@ package org.example.civic_govt.payload.issues;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.civic_govt.model.Issue;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @NoArgsConstructor
@@ -14,5 +16,6 @@ public class CreateIssueDTO {
     private String departmentName;
     private String districtName;
     private String zoneName;
-    private String priority;
+    private Issue.Priority priority;
+    private MultipartFile[] images;
 }

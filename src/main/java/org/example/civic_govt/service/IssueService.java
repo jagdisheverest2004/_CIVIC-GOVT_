@@ -1,16 +1,11 @@
 package org.example.civic_govt.service;
 
-import org.example.civic_govt.model.Issue;
-import org.example.civic_govt.model.User;
-import org.example.civic_govt.model.Department;
-import org.example.civic_govt.model.Zone;
+import org.example.civic_govt.model.*;
 import org.example.civic_govt.payload.issues.CreateIssueDTO;
 import org.example.civic_govt.payload.issues.FetchIssueDTO;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
 import org.example.civic_govt.payload.issues.IssueFilterDTO;
-import org.example.civic_govt.repository.DepartmentRepository;
-import org.example.civic_govt.repository.IssueRepository;
-import org.example.civic_govt.repository.UserRepository;
+import org.example.civic_govt.repository.*;
 import org.example.civic_govt.util.IssueSpecification;
 import org.example.civic_govt.util.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +52,12 @@ public class IssueService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private ZoneRepository zoneRepository;
+
+    @Autowired
+    private DistrictRepository districtRepository;
+
     private String constructImageUrl(String fileName) {
         return imageBaseUrl.endsWith("/") ? imageBaseUrl + fileName : imageBaseUrl + "/" + fileName;
     }
@@ -82,28 +83,34 @@ public class IssueService {
         dto.setLongitude(issue.getLongitude());
         dto.setStatus(issue.getStatus().name());
         dto.setPriority(issue.getPriority().name());
-        dto.setDepartmentName(issue.getDepartment().getName());
-        dto.setDistrictName(issue.getDistrict().getName());
-        dto.setZoneName(issue.getZone().getName());
+        dto.setDepartmentName(issue.getDepartment() != null ? issue.getDepartment().getName() : null);
+        dto.setDistrictName(issue.getDistrict() != null ? issue.getDistrict().getName() : null);
+        dto.setZoneName(issue.getZone() != null ? issue.getZone().getName() : null);
         dto.setReporters(issue.getReporters().stream().map(User::getUsername).toList());
+        dto.setPhotosUrls(issue.getPhotos() != null ? issue.getPhotos(): List.of() );
         dto.setCreatedAt(issue.getCreatedAt());
         dto.setUpdatedAt(issue.getUpdatedAt());
-        dto.setUpvoteCount((long) issue.getVotes().size());
-        dto.setCommentCount((long) issue.getComments().size());
+        dto.setUpvoteCount(issue.getVotes()!=null?(long)issue.getVotes().size():null);
+        dto.setCommentCount(issue.getComments()!=null?(long)issue.getComments().size():null);
         return dto;
     }
 
-    public FetchIssueDTO createIssue(CreateIssueDTO createIssueDTO, User reporter, MultipartFile[] images) {
+    public FetchIssueDTO createIssue(CreateIssueDTO createIssueDTO, User reporter) {
         // Find existing issues based on location and category
-        Optional<Issue> existingIssue = issueRepository.findByTitleAndLatitudeAndLongitude(
+        Optional<Issue> existingIssue = issueRepository.findByExistingFields(
                 createIssueDTO.getTitle(),
                 createIssueDTO.getLatitude(),
-                createIssueDTO.getLongitude()
+                createIssueDTO.getLongitude(),
+                createIssueDTO.getPriority(),
+                createIssueDTO.getDepartmentName(),
+                createIssueDTO.getDistrictName(),
+                createIssueDTO.getZoneName()
         );
 
         if (existingIssue.isPresent()) {
             // If the issue exists, add the new reporter as a contributor
             Issue foundIssue = existingIssue.get();
+            MultipartFile[] images = createIssueDTO.getImages();
             // Handle image uploads if any
             if (images != null) {
                 for (MultipartFile image : images) {
@@ -139,7 +146,7 @@ public class IssueService {
 
             // Set default values and add the first contributor
             newIssue.setStatus(Issue.Status.PENDING);
-            newIssue.setPriority(Issue.Priority.valueOf(createIssueDTO.getPriority()));
+            newIssue.setPriority(createIssueDTO.getPriority());
             newIssue.setReporters(List.of(reporter));
             newIssue.setCreatedAt(LocalDateTime.now());
             newIssue.setUpdatedAt(LocalDateTime.now());
@@ -148,6 +155,16 @@ public class IssueService {
             Department department = departmentRepository.findByName(createIssueDTO.getDepartmentName())
                     .orElseThrow(() -> new RuntimeException("Department not found."));
             newIssue.setDepartment(department);
+            District district = districtRepository.findDistrictByDepartmentName(department, createIssueDTO.getDistrictName());
+            if (district == null) {
+                throw new RuntimeException("District not found in the specified department.");
+            }
+            newIssue.setDistrict(district);
+            Zone zone = zoneRepository.findZoneByDistrictName(district, createIssueDTO.getZoneName());
+            if (zone == null) {
+                throw new RuntimeException("Zone not found in the specified district.");
+            }
+            newIssue.setZone(zone);
 
             // Logic to handle custom issues
             if (!department.getDefaultIssueTypes().contains(newIssue.getTitle())) {
