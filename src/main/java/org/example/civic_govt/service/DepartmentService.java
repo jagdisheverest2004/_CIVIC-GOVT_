@@ -3,6 +3,8 @@ package org.example.civic_govt.service;
 import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.District;
 import org.example.civic_govt.model.User;
+import org.example.civic_govt.payload.departments.FetchDepartmentDTO;
+import org.example.civic_govt.payload.departments.FetchDepartmentsDTO;
 import org.example.civic_govt.payload.districts.FetchDistrictDTO;
 import org.example.civic_govt.payload.districts.FetchDistrictsDTO;
 import org.example.civic_govt.payload.users.FetchUserDTO;
@@ -124,5 +126,128 @@ public class DepartmentService {
         fetchDistrictsDTO.setTotalElements(districtPage.getTotalElements());
         fetchDistrictsDTO.setLastPage(districtPage.isLast());
         return fetchDistrictsDTO;
+    }
+
+    public FetchDepartmentsDTO getAllDepartments(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String keyword) {
+        Pageable pageable = pageUtil.createPageable(pageNumber, pageSize, sortBy, sortOrder);
+        Specification<Department> spec = Specification.anyOf();
+        if (keyword != null && !keyword.isEmpty()) {
+            String likePattern = "%" + keyword.toLowerCase() + "%";
+            Specification<Department> keywordSpec = (root, query, criteriaBuilder) -> criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), likePattern);
+            keywordSpec = keywordSpec.or((root, query, criteriaBuilder) -> criteriaBuilder.like(criteriaBuilder.lower(root.get("deptHead").get("name")), likePattern));
+            spec = spec.and(keywordSpec);
+        }
+        Page<Department> departmentsPage = departmentRepository.findAll(spec, pageable);
+
+        FetchDepartmentsDTO fetchDepartmentsDTO = new FetchDepartmentsDTO();
+        List<FetchDepartmentDTO> departmentsDTO = departmentsPage.getContent().stream().map(department -> {
+            FetchDepartmentDTO dto = new FetchDepartmentDTO();
+            dto.setId(department.getId());
+            dto.setName(department.getName());
+            if (department.getDeptHead() != null) {
+                dto.setDeptHeadName(department.getDeptHead().getUsername());
+            }
+            if(department.getDistricts()!=null) {
+                dto.setNumberOfDistricts(department.getDistricts().size());
+            } else {
+                dto.setNumberOfDistricts(0);
+            }
+            if(department.getIssues()!=null) {
+                dto.setNumberOfIssues(department.getIssues().size());
+            } else {
+                dto.setNumberOfIssues(0);
+            }
+            if(department.getDistrictOfficials()!=null) {
+                dto.setNumberOfOfficials(department.getDistrictOfficials().size());
+            } else {
+                dto.setNumberOfOfficials(0);
+            }
+            dto.setDefaultIssueTypes(department.getDefaultIssueTypes());
+            return dto;
+        }).toList();
+
+        fetchDepartmentsDTO.setDepartmentsDTO(departmentsDTO);
+        fetchDepartmentsDTO.setPageNumber(departmentsPage.getNumber());
+        fetchDepartmentsDTO.setPageSize(departmentsPage.getSize());
+        fetchDepartmentsDTO.setTotalPages(departmentsPage.getTotalPages());
+        fetchDepartmentsDTO.setTotalElements(departmentsPage.getTotalElements());
+        fetchDepartmentsDTO.setLastPage(departmentsPage.isLast());
+        return fetchDepartmentsDTO;
+    }
+
+    public FetchUserDTO findDepartmentHeadByDepartmentName(String name) {
+        User deptHead = departmentRepository.findDeptHeadByName(name).orElseThrow(() -> new IllegalArgumentException("Department not found with name " + name));
+        if(deptHead==null){
+            throw new IllegalArgumentException("No Department Head assigned for department " + name);
+        }
+        FetchUserDTO dto = new FetchUserDTO();
+        dto.setId(deptHead.getId());
+        dto.setName(deptHead.getUsername());
+        dto.setEmail(deptHead.getEmail());
+        dto.setRole(deptHead.getRole().name());
+        if (deptHead.getDepartment() != null) {
+            dto.setDepartment(deptHead.getDepartment().getName());
+        }
+        return dto;
+    }
+
+    public FetchDepartmentDTO getDepartmentByName(String name) {
+        Department department = departmentRepository.findByName(name)
+                .orElseThrow(() -> new RuntimeException("Department not found with name " + name));
+        FetchDepartmentDTO dto = new FetchDepartmentDTO();
+        dto.setId(department.getId());
+        dto.setName(department.getName());
+        if (department.getDeptHead() != null) {
+            dto.setDeptHeadName(department.getDeptHead().getUsername());
+        }
+        if(department.getDistricts()!=null) {
+            dto.setNumberOfDistricts(department.getDistricts().size());
+        } else {
+            dto.setNumberOfDistricts(0);
+        }
+        if(department.getIssues()!=null) {
+            dto.setNumberOfIssues(department.getIssues().size());
+        } else {
+            dto.setNumberOfIssues(0);
+        }
+        if(department.getDistrictOfficials()!=null) {
+            dto.setNumberOfOfficials(department.getDistrictOfficials().size());
+        } else {
+            dto.setNumberOfOfficials(0);
+        }
+        dto.setDefaultIssueTypes(department.getDefaultIssueTypes());
+        return dto;
+    }
+
+    public FetchDistrictDTO findDistrictByName(Department department, String name) {
+        District district = districtRepository.findDistrictByDepartmentName(department, name);
+        if(district==null) {
+            throw new RuntimeException("District not found with name " + name + " in department " + department.getName());
+        }
+        FetchDistrictDTO dto = new FetchDistrictDTO();
+        dto.setId(district.getId());
+        dto.setName(district.getName());
+        if (district.getDistHead() != null) {
+            dto.setDistrictHeadName(district.getDistHead().getUsername());
+        }
+        if (district.getDepartment() != null) {
+            dto.setDepartmentName(district.getDepartment().getName());
+        }
+        if(district.getZones()!=null) {
+            dto.setNumberOfZones((long)district.getZones().size());
+        } else {
+            dto.setNumberOfZones(0L);
+        }
+        if(district.getZoneOfficials()!=null) {
+            dto.setNumberOfZoneOfficials((long)district.getZoneOfficials().size());
+        } else {
+            dto.setNumberOfZoneOfficials(0L);
+        }
+        if(district.getIssues()!=null) {
+            dto.setNumberOfIssues((long)district.getIssues().size());
+        } else {
+            dto.setNumberOfIssues(0L);
+        }
+        return dto;
     }
 }

@@ -3,6 +3,7 @@ package org.example.civic_govt.controller;
 import org.example.civic_govt.config.AppConstants;
 import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.User;
+import org.example.civic_govt.payload.districts.FetchDistrictDTO;
 import org.example.civic_govt.payload.districts.FetchDistrictsDTO;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
 import org.example.civic_govt.payload.issues.IssueFilterDTO;
@@ -16,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/api/auth/departments")
@@ -121,6 +121,22 @@ public class DepartmentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
 
+        }
+    }
+
+    @GetMapping("/view-district/{name}")
+    public ResponseEntity<?> getDistrictByName(@PathVariable String name) {
+        try {
+            User loggedInUser = authUtil.getLoggedInUser();
+            if (!loggedInUser.getRole().equals(User.Role.DEPT_HEAD)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+            }
+            FetchDistrictDTO districtDTO = departmentService.findDistrictByName(loggedInUser.getDepartment(), name);
+            return ResponseEntity.ok(districtDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
 }

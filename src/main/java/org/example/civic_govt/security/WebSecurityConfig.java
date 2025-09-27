@@ -79,7 +79,10 @@ public class WebSecurityConfig {
                                 .requestMatchers("/api/auth/issues/*/comments/*").hasAuthority("CITIZEN")
                                 .requestMatchers("/api/auth/issues/*/votes/*").hasAuthority("CITIZEN")
                                 .requestMatchers("/api/auth/users/**").authenticated()
-                                .requestMatchers("/api/auth/account/**").hasAnyAuthority("ADMIN","ZONE_HEAD","DEPT_HEAD","DISTRICT_HEAD")
+                                .requestMatchers("/api/auth/account/create-zone-subordinate").hasAnyAuthority("ADMIN","ZONE_HEAD","DEPT_HEAD","DISTRICT_HEAD")
+                                .requestMatchers("/api/auth/account/create-zone-head").hasAnyAuthority("ADMIN","DISTRICT_HEAD","DEPT_HEAD")
+                                .requestMatchers("/api/auth/account/create-district-head").hasAnyAuthority("ADMIN","DEPT_HEAD")
+                                .requestMatchers("/api/auth/account/create-department-head").hasAuthority("ADMIN")
                                 .requestMatchers("/images/**").permitAll()
                                 .anyRequest().authenticated()
                 );
