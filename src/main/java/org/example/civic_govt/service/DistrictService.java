@@ -4,6 +4,7 @@ import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.District;
 import org.example.civic_govt.model.User;
 import org.example.civic_govt.model.Zone;
+import org.example.civic_govt.payload.districts.FetchDistrictDTO;
 import org.example.civic_govt.payload.users.FetchUserDTO;
 import org.example.civic_govt.payload.users.FetchUsersDTO;
 import org.example.civic_govt.payload.zones.FetchZoneDTO;
@@ -124,5 +125,20 @@ public class DistrictService {
         fetchZonesDTO.setTotalElements(zonePage.getTotalElements());
         fetchZonesDTO.setLastPage(zonePage.isLast());
         return fetchZonesDTO;
+    }
+
+    public FetchDistrictDTO getDistrictById(Long id) {
+        District district = districtRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("District not found with id " + id));
+        FetchDistrictDTO dto = new FetchDistrictDTO();
+        dto.setId(district.getId());
+        dto.setName(district.getName());
+        dto.setDepartmentName(district.getDepartment().getName());
+        if(district.getDistHead()!=null){
+            dto.setDistrictHeadName(district.getDistHead().getUsername());
+        }
+        dto.setNumberOfZones((long)district.getZones().size());
+        dto.setNumberOfZoneOfficials((long)district.getZones().stream().mapToInt(zone -> zone.getSubordinateOfficials().size()).sum());
+        dto.setNumberOfIssues((long)district.getZones().stream().mapToInt(zone -> zone.getIssues().size()).sum());
+        return dto;
     }
 }

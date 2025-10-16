@@ -3,9 +3,12 @@ package org.example.civic_govt.controller;
 import org.example.civic_govt.config.AppConstants;
 import org.example.civic_govt.model.District;
 import org.example.civic_govt.model.User;
+import org.example.civic_govt.payload.districts.FetchDistrictDTO;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
 import org.example.civic_govt.payload.issues.IssueFilterDTO;
+import org.example.civic_govt.payload.users.FetchUserDTO;
 import org.example.civic_govt.payload.users.FetchUsersDTO;
+import org.example.civic_govt.payload.zones.FetchZoneDTO;
 import org.example.civic_govt.payload.zones.FetchZonesDTO;
 import org.example.civic_govt.service.DistrictService;
 import org.example.civic_govt.service.IssueService;
@@ -25,6 +28,7 @@ public class DistrictController {
 
     @Autowired
     private AuthUtil authUtil;
+
     @Autowired
     private DistrictService districtService;
 
@@ -103,5 +107,52 @@ public class DistrictController {
         return ResponseEntity.ok(zonesDTO);
     }
 
+    @GetMapping("/view-zone-head/{name}")
+    public ResponseEntity<?> getZoneHeadByName(@PathVariable String name) {
+        try{
+            User loggedInUser = authUtil.getLoggedInUser();
+            if (!loggedInUser.getRole().equals(User.Role.DISTRICT_HEAD)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+            }
+            FetchUserDTO userDTO = zoneService.findZoneHeadByZoneName(loggedInUser.getDistrict(), name);
+            return ResponseEntity.ok(userDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/view-zone/{name}")
+    public ResponseEntity<?> getZoneByName(@PathVariable String name) {
+        try {
+            User loggedInUser = authUtil.getLoggedInUser();
+            if (!loggedInUser.getRole().equals(User.Role.DISTRICT_HEAD)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+            }
+            FetchZoneDTO zoneDTO = zoneService.getZoneByName(loggedInUser.getDistrict(), name);
+            return ResponseEntity.ok(zoneDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/view-district")
+    public ResponseEntity<?> getDistrict() {
+        try {
+            User loggedInUser = authUtil.getLoggedInUser();
+            if (!loggedInUser.getRole().equals(User.Role.DISTRICT_HEAD)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+            }
+            FetchDistrictDTO districtDTO = districtService.getDistrictById(loggedInUser.getDistrict().getId());
+            return ResponseEntity.ok(districtDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
 
 }

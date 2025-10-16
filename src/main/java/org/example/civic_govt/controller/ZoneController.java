@@ -5,6 +5,7 @@ import org.example.civic_govt.model.User;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
 import org.example.civic_govt.payload.issues.IssueFilterDTO;
 import org.example.civic_govt.payload.users.FetchUsersDTO;
+import org.example.civic_govt.payload.zones.FetchZoneDTO;
 import org.example.civic_govt.service.IssueService;
 import org.example.civic_govt.service.UserService;
 import org.example.civic_govt.service.ZoneService;
@@ -28,6 +29,7 @@ public class ZoneController {
 
     @Autowired
     private AuthUtil authUtil;
+
     @Autowired
     private ZoneService zoneService;
 
@@ -65,5 +67,15 @@ public class ZoneController {
         }
         FetchUsersDTO usersDTO = zoneService.getOfficialsInZone(zoneHead.getZone(), pageNumber, pageSize, sortBy, sortOrder);
         return ResponseEntity.ok(usersDTO);
+    }
+
+    @GetMapping("/view-zone")
+    public ResponseEntity<?> getZoneDetails() {
+        User zoneHead = authUtil.getLoggedInUser();
+        if (!zoneHead.getRole().equals(User.Role.ZONE_HEAD) || zoneHead.getZone() == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+        }
+        FetchZoneDTO zoneDTO = zoneService.getZoneDetails(zoneHead.getZone().getId());
+        return ResponseEntity.ok(zoneDTO);
     }
 }

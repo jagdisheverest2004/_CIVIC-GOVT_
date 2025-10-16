@@ -3,6 +3,7 @@ package org.example.civic_govt.controller;
 import org.example.civic_govt.config.AppConstants;
 import org.example.civic_govt.model.Department;
 import org.example.civic_govt.model.User;
+import org.example.civic_govt.payload.departments.FetchDepartmentDTO;
 import org.example.civic_govt.payload.districts.FetchDistrictDTO;
 import org.example.civic_govt.payload.districts.FetchDistrictsDTO;
 import org.example.civic_govt.payload.issues.FetchIssuesDTO;
@@ -133,6 +134,39 @@ public class DepartmentController {
             }
             FetchDistrictDTO districtDTO = departmentService.findDistrictByName(loggedInUser.getDepartment(), name);
             return ResponseEntity.ok(districtDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/view-department-issue-types")
+    public ResponseEntity<?> getDepartmentIssueTypes() {
+        User loggedInUser = authUtil.getLoggedInUser();
+        if (loggedInUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in.");
+        }
+        if(loggedInUser.getRole().equals(User.Role.DEPT_HEAD) && loggedInUser.getDepartment() != null){
+            Department department = departmentService.findDepartmentByName(loggedInUser.getDepartment().getName());
+            return new ResponseEntity<>(department.getDefaultIssueTypes(), HttpStatus.OK);
+        }
+        return new ResponseEntity<>("Department not found", HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/view-department")
+    public ResponseEntity<?> getDepartmentByNamePublic() {
+        try {
+            User loggedInUser = authUtil.getLoggedInUser();
+            if (loggedInUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in.");
+            }
+            if(!loggedInUser.getRole().equals(User.Role.DEPT_HEAD) || loggedInUser.getDepartment() == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this resource.");
+            }
+            String name = loggedInUser.getDepartment().getName();
+            FetchDepartmentDTO departmentDTO = departmentService.getDepartmentByName(name);
+            return ResponseEntity.ok(departmentDTO);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
